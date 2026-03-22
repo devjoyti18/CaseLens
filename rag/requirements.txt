@@ -1,0 +1,14 @@
+langchain-core
+langchain-community
+langchain-chroma
+langchain-huggingface
+langchain-ollama
+langchain-text-splitters
+python-dotenv
+chromadb
+transformers
+sentence-transformers
+torch
+pypdf
+python-docx
+docx2txt

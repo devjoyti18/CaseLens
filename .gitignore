@@ -1,0 +1,26 @@
+# Secret keys — never upload
+.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+
+# Virtual environment
+rag/venv/
+
+# Vector store (large binary files, rebuilt on run)
+rag/core/vectorStore/
+
+# Parsed data (intermediate, not needed)
+rag/dataStore/parsedData/
+
+# VS Code
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
