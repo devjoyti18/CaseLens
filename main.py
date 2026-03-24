@@ -1,12 +1,15 @@
+from dotenv import load_dotenv
+load_dotenv()
+
 from rag.pipeline import ingestion_pipeline, query_pipeline
+
 
 # if __name__ == "__main__":
 
-#Create or update the vector store
+# Create or update the vector store
 ingestion_pipeline()
 
-
-#Create a response
+# Create a response
 query_pipeline()
 
 
