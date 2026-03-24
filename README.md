@@ -3,6 +3,12 @@
 A full-stack Retrieval-Augmented Generation (RAG) application designed to query Indian Supreme Court case documents using natural language.
 
 ---
+## 💡 Why this project?
+
+Legal documents are complex and difficult to search manually.  
+This project uses Retrieval-Augmented Generation (RAG) to enable precise, citation-backed answers from legal case documents.
+
+---
 
 ## 🚀 Features
 
