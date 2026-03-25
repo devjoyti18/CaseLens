@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>ContractChatbot — Legal RAG</title>
+<title>CaseLens — Legal RAG</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
@@ -12,23 +12,27 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --ink:        #0e0e0e;
-  --paper:      #f5f0e8;
-  --cream:      #ede8dc;
-  --rule:       #c8bfaa;
-  --gold:       #b8860b;
-  --gold-lt:    #d4a017;
-  --red:        #8b1a1a;
-  --green:      #2d6a4f;
-  --muted:      #6b6050;
-  --panel:      #1a1612;
-  --panel-mid:  #221e18;
-  --panel-lt:   #2a2420;
-  --answer-bg:  #faf7f2;
-  --radius:     4px;
-  --mono:       'IBM Plex Mono', monospace;
-  --serif:      'Playfair Display', Georgia, serif;
-  --sans:       'IBM Plex Sans', sans-serif;
+  /* ── Navy / Slate palette (drawn from the CaseLens logo) ── */
+  --ink:          #0d1b2a;          /* deep navy — primary text           */
+  --paper:        #f0f4f8;          /* cool off-white — page background   */
+  --cream:        #e4eaf1;          /* slightly bluer tint for cards      */
+  --rule:         #b8c8d8;          /* slate rule lines                   */
+  --navy:         #1b2f4e;          /* logo navy — primary accent         */
+  --navy-lt:      #2a4a72;          /* lighter navy for hovers            */
+  --navy-dim:     #162640;          /* darker navy for sidebar            */
+  --accent:       #2e6ab4;          /* bright blue CTA / send btn         */
+  --accent-lt:    #4285c8;          /* hover state                        */
+  --red:          #8b1a1a;
+  --green:        #1a5c3a;
+  --muted:        #4d6070;
+  --panel:        #0f1d2e;          /* darkest sidebar bg                 */
+  --panel-mid:    #16273a;
+  --panel-lt:     #1e3450;
+  --answer-bg:    #f8fbff;
+  --radius:       4px;
+  --mono:         'IBM Plex Mono', monospace;
+  --serif:        'Playfair Display', Georgia, serif;
+  --sans:         'IBM Plex Sans', sans-serif;
 }
 
 html, body { height: 100%; background: var(--paper); color: var(--ink); font-family: var(--sans); font-size: 15px; line-height: 1.6; }
@@ -44,22 +48,21 @@ html, body { height: 100%; background: var(--paper); color: var(--ink); font-fam
 /* ── Sidebar ────────────────────────────────────────────────────── */
 .sidebar {
   background: var(--panel);
-  color: #d4cfc5;
+  color: #e6f1ff;
   display: flex;
   flex-direction: column;
-  border-right: 1px solid #3a3028;
+  border-right: 1px solid #1e3450;
   overflow: hidden;
 }
 
 .sidebar-logo {
   padding: 24px 22px 18px;
-  border-bottom: 1px solid #3a3028;
+  border-bottom: 1px solid #1e3450;
   flex-shrink: 0;
 }
-.sidebar-logo .mark { font-family: var(--serif); font-size: 19px; color: var(--gold-lt); letter-spacing: .02em; }
-.sidebar-logo .sub  { font-family: var(--mono); font-size: 9px; letter-spacing: .14em; text-transform: uppercase; color: #5c5248; margin-top: 3px; }
+.sidebar-logo .mark { font-family: var(--serif); font-size: 19px; color: #7eb8f0; letter-spacing: .02em; }
+.sidebar-logo .sub  { font-family: var(--mono); font-size: 9px; letter-spacing: .14em; text-transform: uppercase; color: #3a5470; margin-top: 3px; }
 
-/* scrollable body of sidebar */
 .sidebar-body {
   flex: 1;
   overflow-y: auto;
@@ -68,26 +71,30 @@ html, body { height: 100%; background: var(--paper); color: var(--ink); font-fam
   gap: 0;
 }
 .sidebar-body::-webkit-scrollbar { width: 3px; }
-.sidebar-body::-webkit-scrollbar-thumb { background: #3a3028; border-radius: 4px; }
+.sidebar-body::-webkit-scrollbar-thumb { background: #1e3450; border-radius: 4px; }
 
-/* section blocks inside sidebar */
 .sb-section {
   padding: 18px 20px;
-  border-bottom: 1px solid #2a2420;
+  border-bottom: 1px solid #1e3450;
+  background: rgba(255,255,255,0.02);  /* subtle layer */
 }
-
+.sb-section:hover {
+  background: rgba(255,255,255,0.04);
+  transition: background 0.2s ease;
+}
 .section-label {
   font-family: var(--mono);
-  font-size: 9px;
-  letter-spacing: .16em;
+  font-size: 11px;
+  letter-spacing: .18em;
   text-transform: uppercase;
-  color: #5c5248;
-  margin-bottom: 10px;
+  color: #9cc9ff;   /* brighter blue */
+  font-weight: 600;
 }
 
 /* ── Drop zone ──────────────────────────────────────────────────── */
 .drop-zone {
-  border: 1.5px dashed #3a3028;
+  border: 1.5px dashed #3a5f85;
+  background: rgba(255,255,255,0.02);
   border-radius: var(--radius);
   padding: 18px 12px;
   text-align: center;
@@ -96,14 +103,14 @@ html, body { height: 100%; background: var(--paper); color: var(--ink); font-fam
   position: relative;
 }
 .drop-zone:hover,
-.drop-zone.drag-over { border-color: var(--gold); background: #221e14; }
+.drop-zone.drag-over { border-color: var(--accent); background: #0e2040; }
 
 .drop-zone input[type="file"] {
   position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
 }
 .drop-icon { font-size: 22px; margin-bottom: 6px; display: block; }
-.drop-label { font-family: var(--mono); font-size: 10px; color: #7a6f62; letter-spacing: .06em; line-height: 1.5; }
-.drop-label strong { color: var(--gold-lt); }
+.drop-label { font-family: var(--mono); font-size: 10px; color: #4a6880; letter-spacing: .06em; line-height: 1.5; }
+.drop-label strong { color: #7eb8f0; }
 
 /* upload progress */
 .upload-progress {
@@ -114,14 +121,14 @@ html, body { height: 100%; background: var(--paper); color: var(--ink); font-fam
 }
 .upload-progress.visible { display: flex; }
 .progress-bar-wrap {
-  background: #2a2420;
+  background: #1e3450;
   border-radius: 2px;
   height: 3px;
   overflow: hidden;
 }
 .progress-bar {
   height: 100%;
-  background: var(--gold);
+  background: var(--accent);
   width: 0%;
   transition: width .3s ease;
   border-radius: 2px;
@@ -129,7 +136,7 @@ html, body { height: 100%; background: var(--paper); color: var(--ink); font-fam
 .progress-label {
   font-family: var(--mono);
   font-size: 9px;
-  color: #7a6f62;
+  color: #4a6880;
   letter-spacing: .06em;
 }
 
@@ -142,7 +149,7 @@ html, body { height: 100%; background: var(--paper); color: var(--ink); font-fam
   overflow-y: auto;
 }
 .doc-list::-webkit-scrollbar { width: 3px; }
-.doc-list::-webkit-scrollbar-thumb { background: #3a3028; }
+.doc-list::-webkit-scrollbar-thumb { background: #1e3450; }
 
 .doc-item {
   display: flex;
@@ -151,10 +158,10 @@ html, body { height: 100%; background: var(--paper); color: var(--ink); font-fam
   padding: 6px 8px;
   border-radius: var(--radius);
   background: var(--panel-mid);
-  border: 1px solid #2e2820;
+  border: 1px solid #1e3450;
   font-family: var(--mono);
   font-size: 10px;
-  color: #9a8f80;
+  color: #cfe6ff;
   animation: fadeIn .25s ease;
 }
 .doc-item .doc-name {
@@ -162,12 +169,12 @@ html, body { height: 100%; background: var(--paper); color: var(--ink); font-fam
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  color: #c8bfaa;
+  color: #9ab8d0;
 }
 .doc-item .doc-del {
   background: none;
   border: none;
-  color: #5c5248;
+  color: #3a5470;
   cursor: pointer;
   font-size: 12px;
   padding: 0 2px;
@@ -180,7 +187,7 @@ html, body { height: 100%; background: var(--paper); color: var(--ink); font-fam
 .no-docs {
   font-family: var(--mono);
   font-size: 10px;
-  color: #4a4038;
+  color: #2a4060;
   text-align: center;
   padding: 10px 0;
   letter-spacing: .06em;
@@ -189,8 +196,8 @@ html, body { height: 100%; background: var(--paper); color: var(--ink); font-fam
 /* ── Build Index button ─────────────────────────────────────────── */
 .ingest-btn {
   width: 100%;
-  background: var(--gold);
-  color: #fff8ee;
+  background: var(--navy);
+  color: #ddeeff;
   border: none;
   border-radius: var(--radius);
   padding: 10px 14px;
@@ -207,9 +214,9 @@ html, body { height: 100%; background: var(--paper); color: var(--ink); font-fam
   gap: 8px;
   margin-bottom: 10px;
 }
-.ingest-btn:hover   { background: var(--gold-lt); }
+.ingest-btn:hover   { background: var(--navy-lt); }
 .ingest-btn:active  { transform: scale(.98); }
-.ingest-btn:disabled { background: #4a3e2e; color: #7a6f62; cursor: not-allowed; }
+.ingest-btn:disabled { background: #162030; color: #3a5470; cursor: not-allowed; }
 
 .status-pill {
   display: flex;
@@ -221,9 +228,9 @@ html, body { height: 100%; background: var(--paper); color: var(--ink); font-fam
   border-radius: 20px;
   justify-content: center;
 }
-.status-pill.idle    { background: #2a2420; color: #7a6f62; }
-.status-pill.running { background: #2a2010; color: var(--gold-lt); }
-.status-pill.done    { background: #0e2218; color: #4caf80; }
+.status-pill.idle    { background: #162030; color: #3a5470; }
+.status-pill.running { background: #0e2040; color: #7eb8f0; }
+.status-pill.done    { background: #0a2018; color: #4caf80; }
 .status-pill.error   { background: #2a0e0e; color: #e07070; }
 
 .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
@@ -240,7 +247,7 @@ html, body { height: 100%; background: var(--paper); color: var(--ink); font-fam
   padding: 7px 10px;
   border-radius: var(--radius);
   font-size: 11px;
-  color: #7a6f62;
+  color: #bcd6f0;
   cursor: pointer;
   transition: background .15s, color .15s;
   white-space: nowrap;
@@ -249,20 +256,8 @@ html, body { height: 100%; background: var(--paper); color: var(--ink); font-fam
   font-family: var(--sans);
   font-weight: 300;
 }
-.history-item:hover  { background: #2a2420; color: #c8bfaa; }
-.history-item.active { background: #2e2820; color: var(--gold-lt); }
-
-/* ── Sidebar footer ─────────────────────────────────────────────── */
-.sidebar-footer {
-  padding: 14px 20px;
-  border-top: 1px solid #2a2420;
-  font-family: var(--mono);
-  font-size: 9px;
-  color: #3a3028;
-  letter-spacing: .08em;
-  line-height: 1.8;
-  flex-shrink: 0;
-}
+.history-item:hover  { background: #162640; color: #9ab8d0; }
+.history-item.active { background: #1e3450; color: #7eb8f0; }
 
 /* ── Main ───────────────────────────────────────────────────────── */
 .main { display: flex; flex-direction: column; overflow: hidden; }
@@ -276,7 +271,13 @@ html, body { height: 100%; background: var(--paper); color: var(--ink); font-fam
   background: var(--paper);
   flex-shrink: 0;
 }
-.topbar-title { font-family: var(--serif); font-size: 16px; font-style: italic; }
+.topbar-title {
+  font-family: var(--serif);
+  font-size: 22px;
+  font-weight: 400;
+  color: var(--navy);
+  letter-spacing: 0.3px;
+}
 .topbar-badge {
   font-family: var(--mono);
   font-size: 9px;
@@ -303,8 +304,7 @@ html, body { height: 100%; background: var(--paper); color: var(--ink); font-fam
 
 /* empty state */
 .empty-state { margin: auto; text-align: center; max-width: 440px; animation: fadeUp .5s ease both; }
-.empty-state .gavel { font-size: 44px; margin-bottom: 16px; display: block; }
-.empty-state h2 { font-family: var(--serif); font-size: 24px; font-weight: 400; margin-bottom: 8px; }
+.empty-state h2 { font-family: var(--serif); font-size: 24px; font-weight: 400; margin-bottom: 8px; color: var(--navy); }
 .empty-state p  { color: var(--muted); font-weight: 300; font-size: 13.5px; margin-bottom: 22px; line-height: 1.7; }
 
 .example-queries { display: flex; flex-direction: column; gap: 7px; text-align: left; }
@@ -318,7 +318,7 @@ html, body { height: 100%; background: var(--paper); color: var(--ink); font-fam
   cursor: pointer;
   transition: all .2s;
 }
-.example-query:hover { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.example-query:hover { background: var(--navy); color: #ddeeff; border-color: var(--navy); }
 .example-query::before { content: '↗  '; font-family: var(--mono); opacity: .5; }
 
 /* messages */
@@ -331,8 +331,8 @@ html, body { height: 100%; background: var(--paper); color: var(--ink); font-fam
   display: flex; align-items: center; justify-content: center;
   font-family: var(--mono); font-size: 10px; font-weight: 500; margin-top: 2px;
 }
-.msg-avatar.user { background: var(--ink); color: var(--paper); }
-.msg-avatar.bot  { background: var(--gold); color: #fff8ee; }
+.msg-avatar.user { background: var(--navy); color: #ddeeff; }
+.msg-avatar.bot  { background: var(--accent); color: #fff; }
 
 .msg-body { flex: 1; min-width: 0; }
 .msg-role { font-family: var(--mono); font-size: 9px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin-bottom: 5px; }
@@ -341,11 +341,11 @@ html, body { height: 100%; background: var(--paper); color: var(--ink); font-fam
 .answer-card {
   background: var(--answer-bg);
   border: 1px solid var(--rule);
-  border-left: 3px solid var(--gold);
+  border-left: 3px solid var(--accent);
   border-radius: var(--radius);
   padding: 16px 18px;
 }
-.answer-text { font-size: 13.5px; line-height: 1.85; font-weight: 300; white-space: pre-wrap; }
+.answer-text { font-size: 13.5px; line-height: 1.85; font-weight: 300; white-space: pre-wrap; color: var(--ink); }
 
 /* sources */
 .sources-toggle {
@@ -354,7 +354,7 @@ html, body { height: 100%; background: var(--paper); color: var(--ink); font-fam
   font-size: 10px;
   letter-spacing: .1em;
   text-transform: uppercase;
-  color: var(--gold);
+  color: var(--accent);
   cursor: pointer;
   background: none;
   border: none;
@@ -364,7 +364,7 @@ html, body { height: 100%; background: var(--paper); color: var(--ink); font-fam
   gap: 5px;
   transition: color .2s;
 }
-.sources-toggle:hover { color: var(--gold-lt); }
+.sources-toggle:hover { color: var(--accent-lt); }
 .sources-toggle .arr { transition: transform .2s; display: inline-block; }
 .sources-toggle.open .arr { transform: rotate(90deg); }
 
@@ -382,7 +382,7 @@ html, body { height: 100%; background: var(--paper); color: var(--ink); font-fam
   line-height: 1.6;
 }
 .source-chip .cit  { color: var(--red); font-weight: 500; }
-.source-chip .par  { color: var(--ink); font-weight: 500; }
+.source-chip .par  { color: var(--navy); font-weight: 500; }
 
 /* thinking */
 .thinking {
@@ -398,7 +398,7 @@ html, body { height: 100%; background: var(--paper); color: var(--ink); font-fam
 .dots span {
   display: inline-block;
   width: 5px; height: 5px; border-radius: 50%;
-  background: var(--gold);
+  background: var(--accent);
   animation: bounce 1.2s ease-in-out infinite;
   margin-right: 2px;
 }
@@ -419,38 +419,38 @@ html, body { height: 100%; background: var(--paper); color: var(--ink); font-fam
   padding: 10px 14px;
   transition: border-color .2s;
 }
-.input-row:focus-within { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(184,134,11,.07); }
+.input-row:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(46,106,180,.10); }
 
 .input-field {
   flex: 1; border: none; outline: none;
   font-family: var(--sans); font-size: 13.5px; font-weight: 300; color: var(--ink);
   background: transparent; resize: none; max-height: 120px; line-height: 1.5;
 }
-.input-field::placeholder { color: #b0a898; }
+.input-field::placeholder { color: #8aa0b4; }
 
 .send-btn {
-  background: var(--ink); color: var(--paper); border: none; border-radius: var(--radius);
+  background: var(--navy); color: #ddeeff; border: none; border-radius: var(--radius);
   width: 34px; height: 34px; cursor: pointer;
   display: flex; align-items: center; justify-content: center; flex-shrink: 0;
   transition: background .2s, transform .1s;
 }
-.send-btn:hover   { background: var(--gold); }
+.send-btn:hover   { background: var(--accent); }
 .send-btn:active  { transform: scale(.95); }
 .send-btn:disabled{ background: var(--rule); cursor: not-allowed; }
 .send-btn svg     { width: 14px; height: 14px; fill: currentColor; }
 
-.input-hint { font-family: var(--mono); font-size: 9px; letter-spacing: .1em; text-transform: uppercase; color: #b0a898; margin-top: 6px; text-align: right; }
+.input-hint { font-family: var(--mono); font-size: 9px; letter-spacing: .1em; text-transform: uppercase; color: #8aa0b4; margin-top: 6px; text-align: right; }
 
 /* ── Toast ──────────────────────────────────────────────────────── */
 .toast {
   position: fixed; bottom: 22px; right: 22px;
   padding: 11px 16px; border-radius: var(--radius);
   font-family: var(--mono); font-size: 11px; max-width: 300px;
-  box-shadow: 0 4px 20px rgba(0,0,0,.2); z-index: 200;
+  box-shadow: 0 4px 20px rgba(0,0,0,.15); z-index: 200;
   animation: slideIn .3s ease;
 }
 .toast.err { background: #8b1a1a; color: #fff; }
-.toast.ok  { background: #1a4a30; color: #a0e8b0; }
+.toast.ok  { background: #0f2c48; color: #7eb8f0; border: 1px solid #1e4a70; }
 @keyframes slideIn{from{transform:translateX(110%);opacity:0}to{transform:translateX(0);opacity:1}}
 
 * { scrollbar-width: thin; scrollbar-color: var(--rule) transparent; }
@@ -462,23 +462,35 @@ html, body { height: 100%; background: var(--paper); color: var(--ink); font-fam
 
   <!-- ── Sidebar ───────────────────────────────────────────────── -->
   <aside class="sidebar">
-    <div class="sidebar-logo">
-      <div class="mark">ContractChatbot</div>
-      <div class="sub">Legal RAG · Supreme Court</div>
+    <div class="sidebar-logo" style="display:flex; align-items:center; gap:12px;">
+      <img src="caselens.png" alt="CaseLens Logo"
+       style="
+         width:36px;
+         height:36px;
+         border-radius:50%;
+         object-fit:contain;
+         border:1px solid #1e3450;
+         background:#fff;
+         padding:4px;
+       ">
+      <div>
+        <div class="mark">CaseLens</div>
+        <div class="sub">Legal RAG · Supreme Court</div>
+      </div>
     </div>
 
     <div class="sidebar-body">
 
       <!-- 1. Upload PDFs -->
       <div class="sb-section">
-        <div class="section-label">1 · Upload Documents</div>
+        <div class="section-label"><strong> 1 · Upload Documents</strong></div>
 
         <div class="drop-zone" id="dropZone"
              ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)">
           <input type="file" accept=".pdf" multiple id="fileInput" onchange="onFileChange(event)" />
           <span class="drop-icon">📄</span>
           <div class="drop-label">
-            <strong>Click to browse</strong> or drag &amp; drop<br>PDF files only
+            Click to browse or drag &amp; drop<br>PDF files only
           </div>
         </div>
 
@@ -490,7 +502,7 @@ html, body { height: 100%; background: var(--paper); color: var(--ink); font-fam
 
       <!-- 2. Document list -->
       <div class="sb-section">
-        <div class="section-label">2 · Loaded Documents</div>
+        <div class="section-label"><strong>2 · Loaded Documents</strong></div>
         <div class="doc-list" id="docList">
           <div class="no-docs" id="noDocs">No documents yet</div>
         </div>
@@ -498,7 +510,7 @@ html, body { height: 100%; background: var(--paper); color: var(--ink); font-fam
 
       <!-- 3. Build index -->
       <div class="sb-section">
-        <div class="section-label">3 · Build Knowledge Index</div>
+        <div class="section-label"><strong>3 · Build Knowledge Index</strong></div>
         <button class="ingest-btn" id="ingestBtn" onclick="triggerIngestion()">
           ⚡ Build Index
         </button>
@@ -516,29 +528,38 @@ html, body { height: 100%; background: var(--paper); color: var(--ink); font-fam
 
     </div><!-- /sidebar-body -->
 
-    <div class="sidebar-footer">
-      KIIT University · CS37001<br>
-      Llama 3.3 70B · ChromaDB · BGE
-    </div>
   </aside>
 
   <!-- ── Main ──────────────────────────────────────────────────── -->
   <main class="main">
     <div class="topbar">
-      <div class="topbar-title">Indian Supreme Court — Case Query</div>
+      <div class="topbar-title">Judicial Case Query</div>
       <div class="topbar-badge" id="serverBadge">● Connecting…</div>
     </div>
 
     <div class="chat-area" id="chatArea">
       <div class="empty-state" id="emptyState">
-        <span class="gavel">⚖️</span>
+        <div style="margin-bottom:22px; display:flex; justify-content:center;">
+          <div style="
+            width:90px;
+            height:90px;
+            border-radius:18px;
+            background:#fff;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            box-shadow: 0 8px 22px rgba(15,29,46,0.12);
+            border:1px solid var(--rule);
+          ">
+            <img src="caselens.png" alt="CaseLens Logo"
+                 style="width:60px; height:60px; object-fit:contain;">
+          </div>
+        </div>
         <h2>Query your case documents</h2>
         <p>Upload PDFs → Build Index → Ask questions.<br>Every answer is cited and grounded strictly in the documents.</p>
         <div class="example-queries">
           <div class="example-query" onclick="useExample(this)">What was the Supreme Court's final order regarding unauthorized construction?</div>
           <div class="example-query" onclick="useExample(this)">What notices were issued under Section 314 of the MMC Act?</div>
-          <div class="example-query" onclick="useExample(this)">What is the legal position on compounding of building deviations?</div>
-          <div class="example-query" onclick="useExample(this)">What directions were given to the builder regarding regularization?</div>
         </div>
       </div>
     </div>
@@ -802,7 +823,7 @@ function appendAnswer(text, sources) {
          ${sources.map(s => `
            <div class="source-chip">
              <span class="cit">${esc(s.citation)}</span> · p.${esc(String(s.page))}
-             <span style="color:#5c5248;font-size:9px;text-transform:uppercase;margin-left:4px">${esc(s.section_type)}</span><br>
+             <span style="color:#5a7a96;font-size:9px;text-transform:uppercase;margin-left:4px">${esc(s.section_type)}</span><br>
              <span class="par">${esc(s.appellant)} v. ${esc(s.respondent)}</span>
            </div>`).join("")}
        </div>` : "";
@@ -812,7 +833,7 @@ function appendAnswer(text, sources) {
   w.innerHTML = `
     <div class="msg-avatar bot">⚖</div>
     <div class="msg-body">
-      <div class="msg-role">ContractChatbot</div>
+      <div class="msg-role">CaseLens</div>
       <div class="answer-card" id="${id}">
         <div class="answer-text">${esc(text)}</div>
         ${srcHtml}

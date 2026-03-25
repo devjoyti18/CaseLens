@@ -1,134 +1,69 @@
-# import os
-
-# from dotenv import load_dotenv
-# from langchain_core.documents import Document
-
-# from rag.core.parser.document_loader import load_documents
-# from rag.core.chunking.text_splitter import split_documents
-# from rag.core.embedding.vector_store import create_vector_store
-# from rag.core.retrieval.similaritySearch import retrieve_chunks
-# from rag.core.retrieval.responseGenerator import generate_answer
-# from rag.config import VECTOR_STORE_DIR
-
-
-# # Load environment variables from .env file
-# load_dotenv()
-
-
-# # Ingestion Pipeline
-
-# def ingestion_pipeline():
-
-
-#     # 1. Load raw data from rawData
-#     base_dir = os.path.dirname(__file__)
-#     raw_data_path = os.path.join(base_dir, "dataStore", "rawData")
-#     parsed_data_path = os.path.join(base_dir, "dataStore", "parsedData")
-#     vectorstore_dir = VECTOR_STORE_DIR
-
-
-#     # 2. Parse raw data and store in parsedData
-#     documents = load_documents(raw_data_path)
-
-#     parsed_files = []
-
-#     for i, doc in enumerate(documents):
-#         parsed_file = os.path.join(parsed_data_path, f"parsed_{i+1}.txt")
-#         with open(parsed_file, "w", encoding="utf-8") as f:
-#             f.write(doc.page_content)
-#         parsed_files.append(parsed_file)
-
-#     print(f"Parsed {len(parsed_files)} files and saved to {parsed_data_path}")
-
-
-#     # 3. Feed parsed data into chunking
-#     parsed_documents = []
-
-#     for file in parsed_files:
-#         with open(file, "r", encoding="utf-8") as f:
-#             content = f.read()
-#         # Simulate Document object as in langchain
-#         parsed_documents.append(Document(page_content=content, metadata={"source": file}))
-
-#     chunks = split_documents(parsed_documents)
-
-
-#     # 4. Embed chunks and store vectorstore
-#     create_vector_store(chunks)
-#     print("\n✅ Ingestion complete! Your documents are now ready for RAG queries.")
-
-
-
-
-# # Query Response Pipeline
-# def query_pipeline():
-
-#     while True:
-#         query = input("\nAsk a question (or type 'quit'): ").strip()
-#         if query.lower() == "quit":
-#             break
-
-#         chunks = retrieve_chunks(query)
-#         answer = generate_answer(query, chunks)
-
-#         print("\nAnswer:\n", answer)
-
-
-
-
-
-
-
-
-
-
-
-
-
+"""
+pipeline.py — Ingestion and query pipelines for CaseLens RAG
+Lives at: <project-root>/rag/pipeline.py
+"""
 
 import os
-
+from pathlib import Path
 from dotenv import load_dotenv
-
-from rag.core.parser.document_loader import load_documents
-from rag.core.chunking.text_splitter import split_documents
-from rag.core.embedding.vector_store import create_vector_store
-from rag.core.retrieval.similaritySearch import retrieve_chunks
-from rag.core.retrieval.responseGenerator import generate_answer
-from rag.config import VECTOR_STORE_DIR
-
 
 # Load environment variables from .env file
 load_dotenv()
 
 
-# Ingestion Pipeline
 def ingestion_pipeline():
+    """
+    Full ingestion pipeline:
+      1. Load PDFs from rag/dataStore/rawData/
+      2. Chunk the documents (metadata preserved)
+      3. Embed and store in ChromaDB vector store
+    """
+    # All imports done inside the function so app.py can import this
+    # module without triggering heavy ML imports at startup.
+    from rag.core.parser.document_loader import load_documents
+    from rag.core.chunking.text_splitter import split_documents
+    from rag.core.embedding.vector_store import create_vector_store
 
-    base_dir = os.path.dirname(__file__)
-    raw_data_path = os.path.join(base_dir, "dataStore", "rawData")
+    base_dir = Path(__file__).resolve().parent          # <project-root>/rag/
+    raw_data_path = str(base_dir / "dataStore" / "rawData")
 
-    # 1. Load raw documents with full legal metadata
+    # 1. Load raw documents — legal metadata is extracted here
     documents = load_documents(raw_data_path)
+    if not documents:
+        raise ValueError(
+            f"No documents found in {raw_data_path}. "
+            "Upload PDFs first, then build the index."
+        )
 
-    # 2. Feed directly into chunking — metadata stays intact
+    # 2. Chunk — metadata stays attached to every chunk
     chunks = split_documents(documents)
 
-    # 3. Embed chunks and store in vector store
+    # 3. Embed and persist to ChromaDB
     create_vector_store(chunks)
 
-    print("\n✅ Ingestion complete! Your documents are now ready for RAG queries.")
+    print(f"\n✅ Ingestion complete! {len(chunks)} chunks indexed from {len(documents)} document(s).")
 
 
-# Query Response Pipeline
 def query_pipeline():
+    """
+    Interactive CLI query loop.
+    Run directly:  python -m rag.pipeline
+    """
+    from rag.core.retrieval.similaritySearch import retrieve_chunks
+    from rag.core.retrieval.responseGenerator import generate_answer
 
+    print("CaseLens — type your question or 'quit' to exit.\n")
     while True:
-        query = input("\nAsk a question (or type 'quit'): ").strip()
-        if query.lower() == "quit":
+        query = input("Question: ").strip()
+        if query.lower() in ("quit", "exit", "q"):
             break
+        if not query:
+            continue
 
         chunks = retrieve_chunks(query)
         answer = generate_answer(query, chunks)
+        print("\nAnswer:\n", answer, "\n")
 
-        print("\nAnswer:\n", answer)
+
+if __name__ == "__main__":
+    query_pipeline()

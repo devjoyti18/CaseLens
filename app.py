@@ -1,6 +1,6 @@
 """
-app.py — Flask API server for ContractChatbot
-Place this file at the project root (same level as main.py)
+app.py — Flask API server for CaseLens Legal RAG
+Place this file at the project root (same level as the rag/ folder).
 
 Run with:
     python app.py
@@ -9,6 +9,7 @@ Run with:
 import os
 import threading
 from pathlib import Path
+
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from dotenv import load_dotenv
@@ -16,13 +17,19 @@ from dotenv import load_dotenv
 load_dotenv()
 
 app = Flask(__name__)
-CORS(app)
 
-# Path where uploaded PDFs are saved (same folder the RAG pipeline reads from)
+# ── CORS ───────────────────────────────────────────────────────────────────────
+# Allow requests from the local frontend (file:// or any localhost port).
+# Adjust origins for production deployment.
+CORS(app, resources={r"/api/*": {"origins": "*"}})
+
+# ── Paths ──────────────────────────────────────────────────────────────────────
+# PDFs are stored here; the RAG pipeline reads from this same folder.
 RAW_DATA_DIR = Path(__file__).resolve().parent / "rag" / "dataStore" / "rawData"
 RAW_DATA_DIR.mkdir(parents=True, exist_ok=True)
 
-# Track ingestion state
+# ── Ingestion state (protected by a lock) ─────────────────────────────────────
+_ingest_lock = threading.Lock()
 ingestion_status = {
     "running": False,
     "done":    False,
@@ -36,7 +43,7 @@ ingestion_status = {
 def upload():
     """
     POST /api/upload
-    Accepts one or more PDF files via multipart/form-data under the key 'files'.
+    Accepts one or more PDF files via multipart/form-data under key 'files'.
     Saves them to rag/dataStore/rawData/.
     """
     if "files" not in request.files:
@@ -55,11 +62,11 @@ def upload():
             errors.append(f"{f.filename} — only PDF files are accepted")
             continue
 
-        safe_name = Path(f.filename).name          # strip any path separators
+        safe_name = Path(f.filename).name          # strip any directory separators
         dest = RAW_DATA_DIR / safe_name
 
         try:
-            f.save(dest)
+            f.save(str(dest))
             saved.append(safe_name)
         except Exception as e:
             errors.append(f"{safe_name} — {str(e)}")
@@ -103,35 +110,49 @@ def delete_document(filename):
 # ── Ingestion ──────────────────────────────────────────────────────────────────
 
 def _run_ingestion():
-    global ingestion_status
+    """Background thread: run the ingestion pipeline and update shared state."""
     try:
         from rag.pipeline import ingestion_pipeline
         ingestion_pipeline()
-        ingestion_status["done"]  = True
-        ingestion_status["error"] = None
+        with _ingest_lock:
+            ingestion_status["done"]  = True
+            ingestion_status["error"] = None
     except Exception as e:
-        ingestion_status["error"] = str(e)
+        with _ingest_lock:
+            ingestion_status["error"] = str(e)
+            ingestion_status["done"]  = False
     finally:
-        ingestion_status["running"] = False
+        with _ingest_lock:
+            ingestion_status["running"] = False
 
 
 @app.route("/api/ingest", methods=["POST"])
 def ingest():
-    global ingestion_status
+    with _ingest_lock:
+        if ingestion_status["running"]:
+            return jsonify({
+                "status":  "already_running",
+                "message": "Ingestion already in progress."
+            }), 409
 
-    if ingestion_status["running"]:
-        return jsonify({"status": "already_running",
-                        "message": "Ingestion already in progress."}), 409
+        ingestion_status["running"] = True
+        ingestion_status["done"]    = False
+        ingestion_status["error"]   = None
 
-    ingestion_status.update({"running": True, "done": False, "error": None})
-    threading.Thread(target=_run_ingestion, daemon=True).start()
-    return jsonify({"status": "started",
-                    "message": "Ingestion started in background."}), 202
+    thread = threading.Thread(target=_run_ingestion, daemon=True)
+    thread.start()
+
+    return jsonify({
+        "status":  "started",
+        "message": "Ingestion started in background."
+    }), 202
 
 
 @app.route("/api/ingest/status", methods=["GET"])
 def ingest_status():
-    return jsonify(ingestion_status), 200
+    with _ingest_lock:
+        snapshot = dict(ingestion_status)   # safe copy
+    return jsonify(snapshot), 200
 
 
 # ── Query ──────────────────────────────────────────────────────────────────────
@@ -143,11 +164,11 @@ def query():
     Body:    { "question": "..." }
     Returns: { "answer": "...", "sources": [...] }
     """
-    data = request.get_json()
-    if not data or not data.get("question", "").strip():
+    data = request.get_json(silent=True)
+    if not data or not str(data.get("question", "")).strip():
         return jsonify({"error": "Missing 'question' in request body."}), 400
 
-    question = data["question"].strip()
+    question = str(data["question"]).strip()
 
     try:
         from rag.core.retrieval.similaritySearch import retrieve_chunks
@@ -158,7 +179,7 @@ def query():
 
         sources = []
         for chunk in chunks:
-            meta = getattr(chunk, "metadata", {})
+            meta = getattr(chunk, "metadata", {}) or {}
             entry = {
                 "citation":     meta.get("citation",     "Unknown"),
                 "appellant":    meta.get("appellant",    "?"),
@@ -181,10 +202,17 @@ def query():
 @app.route("/api/health", methods=["GET"])
 def health():
     count = len(list(RAW_DATA_DIR.glob("*.pdf")))
-    return jsonify({"status": "ok", "documents_in_rawData": count}), 200
+    with _ingest_lock:
+        status_snapshot = dict(ingestion_status)
+    return jsonify({
+        "status":             "ok",
+        "documents_in_rawData": count,
+        "ingestion":          status_snapshot,
+    }), 200
 
 
 # ── Entry point ────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=False)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=False)
