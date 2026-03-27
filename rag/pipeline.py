@@ -7,25 +7,32 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 
-# Load environment variables from .env file
 load_dotenv()
 
 
-def ingestion_pipeline():
+def ingestion_pipeline(raw_data_path: str = None, vector_store_path: str = None):
     """
     Full ingestion pipeline:
-      1. Load PDFs from rag/dataStore/rawData/
+      1. Load PDFs from raw_data_path  (defaults to rag/dataStore/rawData/)
       2. Chunk the documents (metadata preserved)
-      3. Embed and store in ChromaDB vector store
+      3. Embed and store in ChromaDB at vector_store_path
+
+    When called from app.py each user session passes its own paths so that
+    uploads and indexes are fully isolated between users.
     """
-    # All imports done inside the function so app.py can import this
-    # module without triggering heavy ML imports at startup.
     from rag.core.parser.document_loader import load_documents
     from rag.core.chunking.text_splitter import split_documents
     from rag.core.embedding.vector_store import create_vector_store
 
-    base_dir = Path(__file__).resolve().parent          # <project-root>/rag/
-    raw_data_path = str(base_dir / "dataStore" / "rawData")
+    # Fall back to the legacy single-user paths if called without arguments
+    # (e.g. from the CLI via  python -m rag.pipeline)
+    if raw_data_path is None:
+        base_dir = Path(__file__).resolve().parent   # <project-root>/rag/
+        raw_data_path = str(base_dir / "dataStore" / "rawData")
+
+    if vector_store_path is None:
+        base_dir = Path(__file__).resolve().parent
+        vector_store_path = str(base_dir / "dataStore" / "vectorStore")
 
     # 1. Load raw documents — legal metadata is extracted here
     documents = load_documents(raw_data_path)
@@ -38,8 +45,8 @@ def ingestion_pipeline():
     # 2. Chunk — metadata stays attached to every chunk
     chunks = split_documents(documents)
 
-    # 3. Embed and persist to ChromaDB
-    create_vector_store(chunks)
+    # 3. Embed and persist to ChromaDB at the session-specific path
+    create_vector_store(chunks, persist_directory=vector_store_path)
 
     print(f"\n✅ Ingestion complete! {len(chunks)} chunks indexed from {len(documents)} document(s).")
 
