@@ -1,0 +1,7 @@
+[build]
+  publish = "frontend"        # the folder Netlify will serve from
+
+[[redirects]]
+  from = "/*"
+  to   = "/frontend.html"
+  status = 200

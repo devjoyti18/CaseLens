@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: caselens-backend
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python app.py
+    envVars:
+      - key: GROQ_API_KEY
+        sync: false          # you will paste this manually in Render dashboard
+      - key: PORT
+        value: 10000
+    disk:
+      name: caselens-data
+      mountPath: /opt/render/project/src/rag/sessions
+      sizeGB: 1
