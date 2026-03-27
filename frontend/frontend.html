@@ -607,12 +607,12 @@ html, body { height: 100%; background: var(--paper); color: var(--ink); font-fam
 </div>
 
 <script>
-// ─── API URL ──────────────────────────────────────────────────────────────────
-// Automatically uses relative /api when deployed (same origin),
-// and localhost:5000 when running locally by opening the file directly.
-const API = (window.location.protocol === "file:" || window.location.hostname === "localhost")
+// ─── API URL ───
+const RENDER_BACKEND_URL = "https://caselens.onrender.com";
+
+const API = (window.location.hostname === "localhost" || window.location.protocol === "file:")
   ? "http://localhost:5000/api"
-  : "/api";
+  : `${RENDER_BACKEND_URL}/api`;
 
 // ─── Session management ───────────────────────────────────────────────────────
 // Each browser tab keeps its own UUID so uploads, indexes, and queries
