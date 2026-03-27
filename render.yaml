@@ -4,9 +4,10 @@ services:
     runtime: python
     buildCommand: pip install -r requirements.txt
     startCommand: python app.py
+    plan: starter          # 512MB → 2GB RAM, needed for torch + transformers
     envVars:
       - key: GROQ_API_KEY
-        sync: false          # you will paste this manually in Render dashboard
+        sync: false
       - key: PORT
         value: 10000
     disk:
