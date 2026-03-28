@@ -190,44 +190,49 @@
 
 from langchain_chroma import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
-from rag.config import VECTOR_STORE_DIR
 
-EMBEDDING_MODEL = "BAAI/bge-base-en-v1.5"
+# Must match the model used in vector_store.py exactly
+EMBEDDING_MODEL = "all-MiniLM-L6-v2"
 COLLECTION_NAME = "legal_cases"
 
-# Embedding model stays at module level — no file locks
-embedding_model = HuggingFaceEmbeddings(
-    model_name=EMBEDDING_MODEL,
-    model_kwargs={"device": "cpu"},
-    encode_kwargs={
-        "normalize_embeddings": True,
-        "batch_size": 32,
-        "prompt": "Represent this legal query for retrieving relevant case documents: ",
-    },
-)
+# Cache the embedding model globally so it loads once per server start,
+# not on every single query (was causing slow responses + OOM on free tier)
+_embedding_model = None
+
+def _get_embedding_model():
+    global _embedding_model
+    if _embedding_model is None:
+        print("Loading embedding model (first query only)…")
+        _embedding_model = HuggingFaceEmbeddings(
+            model_name=EMBEDDING_MODEL,
+            model_kwargs={"device": "cpu"},
+            encode_kwargs={"normalize_embeddings": True},
+        )
+    return _embedding_model
 
 
-def retrieve_chunks(query: str, section_filter: str = None):
+def retrieve_chunks(query: str, vector_store_path=None, section_filter=None):
     """
     Retrieve relevant document chunks for a given query.
-    DB connection opened fresh per call to avoid Windows file lock
-    on chroma.sqlite3 during ingestion.
 
     Args:
-        query:          The lawyer's natural language query.
-        section_filter: Optional. Restrict retrieval to a section type —
-                        'holding', 'facts', 'order', 'reasoning', 'headnote', 'arguments'
+        query:              natural language query
+        vector_store_path:  path to ChromaDB for this session
+        section_filter:     optional metadata filter e.g. "holding"
     """
+    if vector_store_path is None:
+        from rag.config import VECTOR_STORE_DIR
+        vector_store_path = str(VECTOR_STORE_DIR)
 
-    # Connect fresh each call — avoids file lock conflict with vector_store.py
     db = Chroma(
-        persist_directory=str(VECTOR_STORE_DIR),
-        embedding_function=embedding_model,
+        persist_directory=vector_store_path,
+        embedding_function=_get_embedding_model(),
         collection_name=COLLECTION_NAME,
         collection_metadata={"hnsw:space": "cosine"},
     )
 
-    search_kwargs = {"score_threshold": 0.3, "k": 20}
+    search_kwargs = {"score_threshold": 0.3, "k": 10}
+
     if section_filter:
         search_kwargs["filter"] = {"section_type": section_filter}
 
@@ -238,21 +243,7 @@ def retrieve_chunks(query: str, section_filter: str = None):
 
     relevant_docs = retriever.invoke(query)
 
-    print(f"User Query: {query}")
-    if section_filter:
-        print(f"Filter: section_type = {section_filter}")
-    print(f"Retrieved {len(relevant_docs)} chunks")
-
-    print("--- Context ---")
-    for i, doc in enumerate(relevant_docs, 1):
-        m = doc.metadata
-        print(f"\nDocument {i}:")
-        print(f"  Case      : {m.get('appellant', '?')} v. {m.get('respondent', '?')}")
-        print(f"  Citation  : {m.get('citation', '?')}")
-        print(f"  Date      : {m.get('judgment_date', '?')}")
-        print(f"  Outcome   : {m.get('outcome', '?')}")
-        print(f"  Section   : {m.get('section_type', '?')}")
-        print(f"  Page      : {m.get('page', '?')}")
-        print(f"  Content   :\n{doc.page_content}\n")
+    print(f"Query: {query}")
+    print(f"Retrieved {len(relevant_docs)} chunks from {vector_store_path}")
 
     return relevant_docs
